@@ -17,7 +17,9 @@ class MapScreen extends Component {
     super(props);
     this.state = {
       modalDetails: false,
-      selectedOcc: null
+      selectedOcc: null,
+      lat: 0,
+      lon: 0
     }
   }
 
@@ -36,6 +38,10 @@ class MapScreen extends Component {
     this.props.navigation.navigate("NewOccurrenceScreen");
   }
 
+  handleOccurrences = () =>  {
+    this.props.navigation.navigate("MyOccurrencesScreen");
+  }
+
   handleStats = () =>  {
     this.props.navigation.navigate("StatsScreen");
   }
@@ -47,8 +53,63 @@ class MapScreen extends Component {
   handleOccurrenceDetails = () => {
     axios.get(`https://ocurspotter.herokuapp.com/occurrences/${occID}`)
     .then(response => console.log('OCC', response.data.title))
-    .catch(error => console.log(error))
+    .catch(error => console.log("OCC DETAILS", error))
   }
+
+  getCoordinates = () =>
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        this.setState({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude
+        })
+      },
+      (error) => console.log("GETTING COORDS", error.message),
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
+    );
+
+    colorType = type => {
+      let color = "grey";
+      switch (type) {
+        case "Animals":
+          color = '🐕';
+          break;
+        case "Roads and Signs":
+          color = "🛑";
+          break;
+        case "Lightning and Energy":
+          color = "💡";
+          break;
+        case "Gardens and Environment":
+          color = "🏡";
+          break;
+        case "Forest":
+          color = "🌳";
+          break;
+        case "Cleansing and conservation":
+          color = "🛁";
+          break;
+        case "Pavement and Sidewalks":
+          color = "🚶‍";
+          break;
+        case "Waters and Sewers":
+          color = "🚰";
+          break;
+        case "Garbage collection":
+          color = "🗑️";
+          break;
+        case "Vehicles":
+          color = "🚙";
+          break;
+        case "Suggestion":
+          color = "💬";
+          break;
+        default:
+          color = "❓";
+          break;
+      }
+      return color;
+    };
 
   handleMap() {
     let markers = [];
@@ -59,10 +120,11 @@ class MapScreen extends Component {
     })
       .then((response) => {
         for (let i = 0; i < response.data.length; i++) {
+          let icon = this.colorType(response.data[i].type.name);
           markers.push({
             id: response.data[i].id, // The ID attached to the marker. It will be returned when onMarkerClicked is called
             coords: [response.data[i].latitude, response.data[i].longitude], // Latitude and Longitude of the marker
-            icon: '📍', // HTML element that will be displayed as the marker.  It can also be text or an SVG string.
+            icon: icon, // HTML element that will be displayed as the marker.  It can also be text or an SVG string.
 
             // The child object, "animation", controls the optional animation that will be attached to the marker.
             // See below for a list of available animations
@@ -75,12 +137,14 @@ class MapScreen extends Component {
         return markers;
       })
       .then(markers => {
+        this.getCoordinates();
         this.webViewLeaflet.sendMessage({
+          centerPosition: { lat: 41, lng: -8},
           locations: markers,
-          zoom: 2
+          zoom: 7
         })
       })
-      .catch(error => console.log(error))
+      .catch(error => console.log("ERROR MARKERS", error))
   }
 
   onMapClicked = ({ payload }) => {
@@ -95,7 +159,7 @@ class MapScreen extends Component {
         selectedOcc: response.data
       })
     })
-    .catch(error => console.log(error))
+    .catch(error => console.log("ERROR CLICK MARKER", error))
     console.log(`Marker Clicked: ${payload.id}`);
   };
 
@@ -131,7 +195,7 @@ class MapScreen extends Component {
             <Button onPress={this.handleCreate}>
               <Icon name="create" />
             </Button>
-            <Button onPress={this.handleMap.bind(this)}>
+            <Button onPress={this.handleOccurrences}>
               <Icon name="list" />
             </Button>
             <Button active>

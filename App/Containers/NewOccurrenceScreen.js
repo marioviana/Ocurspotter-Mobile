@@ -8,6 +8,7 @@ import axios from 'axios'
 
 // Styles
 import styles from './Styles/NewOccurrenceScreenStyle'
+import WebViewLeaflet from 'react-native-webview-leaflet';
 
 
 class NewOccurrenceScreen extends Component {
@@ -21,15 +22,15 @@ class NewOccurrenceScreen extends Component {
       types: null,
     };
   }
-  
+
   componentDidMount() {
     axios.get('https://ocurspotter.herokuapp.com/types')
-      .then( (response) => {
+      .then((response) => {
         this.setState({
           types: response.data
         });
       })
-      .catch( (error) => {
+      .catch((error) => {
         console.tron.log(error);
       });
   }
@@ -45,14 +46,21 @@ class NewOccurrenceScreen extends Component {
     console.tron.log(this.state.type);
   };
 
-  handleImage() {
-    console.tron.log("LOL");
-  }
+  getCoordinates = () =>
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        console.log(position.coords.latitude);
+        console.log(position.coords.longitude);
+      },
+      (error) => console.log(error.message),
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
+    );
 
   render() {
+    this.getCoordinates();
     let types = [];
     if (this.state.types) {
-      this.state.types.map( type =>
+      this.state.types.map(type =>
         types.push(<Picker.Item key={type.id} label={type.name} value={type.id} />)
       );
     }
@@ -72,7 +80,7 @@ class NewOccurrenceScreen extends Component {
         <Content style={styles.section}>
           <Form>
             <Item picker>
-              <Label>Select your type</Label>
+              <Label>Select type</Label>
               <Picker
                 mode="dropdown"
                 iosIcon={<Icon name="ios-arrow-down-outline" />}
@@ -84,15 +92,28 @@ class NewOccurrenceScreen extends Component {
               </Picker>
             </Item>
             <Item floatingLabel>
-              <Label>Name</Label>
+              <Label>Name:</Label>
               <Input />
             </Item>
             <Item floatingLabel>
-              <Label>Description</Label>
+              <Label>Description:</Label>
               <Input />
             </Item>
-            <Button onPress={this.handleImage.bind(this)}><Text>Image</Text></Button>
           </Form>
+        </Content>
+        {/*<Container style={{ width: '80%' }}>
+          <WebViewLeaflet
+            // get a reference to the web view so that messages can be sent to the map
+            ref={(component) => (this.webViewLeaflet = component)}
+
+            // the component that will receive map events
+            eventReceiver={this}
+          />
+        </Container>*/}
+        <Content style={styles.section}>
+          <Button block info>
+            <Text style={styles.buttonText}>SUBMIT</Text>
+          </Button>
         </Content>
       </Container>
     )

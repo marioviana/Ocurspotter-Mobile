@@ -15,5 +15,8 @@ export default StyleSheet.create({
   },
   right: {
     marginRight: "5%"
-  }
+  },
+  centered: {
+    alignItems: 'center'
+  },
 })

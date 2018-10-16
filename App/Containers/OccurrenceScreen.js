@@ -1,7 +1,8 @@
 import React, { Component } from 'react'
-import { ScrollView, Text, KeyboardAvoidingView, AsyncStorage } from 'react-native'
-import { Icon, Header, Left, Right, Button, Body, Title, Content, Container, List, ListItem } from 'native-base'
+import { Text, AsyncStorage, Image } from 'react-native'
+import { Icon, Header, Left, Right, Button, Body, Title, Content, Container, List, ListItem, Separator, Card, CardItem } from 'native-base'
 import axios from 'axios'
+import { stringify } from "qs"
 // Add Actions - replace 'Your' with whatever your reducer is called :)
 // import YourActions from '../Redux/YourRedux'
 
@@ -13,7 +14,6 @@ class OccurrenceScreen extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      user: 0,
       occurrence: this.props.navigation.state.params.occurrence,
       occurrenceData: {},
       upvoteColor: "grey",
@@ -44,7 +44,7 @@ class OccurrenceScreen extends Component {
           });
         axios.get('https://ocurspotter.herokuapp.com/occurrenceVotes/pair', {
           params: {
-            user: this.state.user,
+            user: this.state.userId,
             occurrence: this.state.occurrence.id
           }
         })
@@ -53,12 +53,14 @@ class OccurrenceScreen extends Component {
             if (response.data === true) {
               this.setState({
                 upvoteColor: "#2185d0",
-                upvoteExists: true
+                upvoteExists: true,
+                upvotes: this.state.occurrenceData.upvotes - this.state.occurrenceData.downvotes
               });
             } else if (response.data === false) {
               this.setState({
                 downvoteColor: "#db2828",
-                upvoteExists: true
+                upvoteExists: true,
+                upvotes: this.state.occurrenceData.upvotes - this.state.occurrenceData.downvotes
               });
             }
           })
@@ -66,6 +68,54 @@ class OccurrenceScreen extends Component {
             console.log(error);
           });
       });
+  }
+
+  handleUpvote() {
+    if (this.state.upvoteColor !== '#2185d0') {
+      axios.post('https://ocurspotter.herokuapp.com/occurrenceVotes/new', 
+        stringify({
+          user: this.state.userId,
+          occurrence: this.state.occurrenceData.id,
+          vote: true,
+          exists: this.state.upvoteExists
+        })
+      )
+        .then( (response) => {
+          let upvotes = this.state.upvoteExists ? this.state.upvotes + 2 : this.state.upvotes + 1;
+          this.setState({
+            upvoteColor: "#2185d0",
+            downvoteColor: "grey",
+            upvotes: upvotes
+          });
+        })
+        .catch( (error) => {
+          console.log(error);
+        }); 
+    }
+  }
+
+  handleDownvote() {
+    if (this.state.downvoteColor !== '#db2828') {
+      axios.post('https://ocurspotter.herokuapp.com/occurrenceVotes/new', 
+        stringify({
+          user: this.state.userId,
+          occurrence: this.state.occurrenceData.id,
+          vote: false,
+          exists: this.state.upvoteExists
+        })
+      )
+        .then( (response) => {
+          let upvotes = this.state.upvoteExists ? this.state.upvotes - 2 : this.state.upvotes - 1;
+          this.setState({
+            downvoteColor: "#db2828",
+            upvoteColor: "grey",
+            upvotes: upvotes
+          });
+        })
+        .catch( (error) => {
+          console.log(error);
+        }); 
+    }
   }
 
   render() {
@@ -89,9 +139,9 @@ class OccurrenceScreen extends Component {
         </Header>
         <Content style={styles.section}>
           <List>
-            <ListItem itemHeader first>
-              <Text>{this.state.occurrence.title}</Text>
-            </ListItem>
+            <Separator style={styles.centered}>
+              <Text style={styles.centered}>{this.state.occurrence.title}</Text>
+            </Separator>
             <ListItem>
               <Left>
                 <Text style={{ fontWeight: "bold" }}>Type: </Text>
@@ -112,19 +162,24 @@ class OccurrenceScreen extends Component {
             </ListItem>
             <ListItem>
               <Left>
-                <Text style={{ fontWeight: "bold" }}>Description: </Text>
-                <Text>{this.state.occurrenceData.description}</Text>
+                <Text style={{ fontWeight: "bold" }}>Votes: &nbsp;</Text>
+                <Icon onPress={this.handleUpvote.bind(this)}  style={{ color: this.state.upvoteColor }} name="ios-arrow-round-up" />
+                <Text style={{ marginRight: "3%" }}>{this.state.upvotes} </Text>
+                <Icon onPress={this.handleDownvote.bind(this)}  style={{ color: this.state.downvoteColor }} name="ios-arrow-round-down" />
               </Left>
             </ListItem>
             <ListItem>
               <Left>
-                <Text style={{ fontWeight: "bold" }}>Votes: </Text>
-                <Icon style={{ color: this.state.upvoteColor }} name="ios-arrow-round-up" />
-                <Text style={{ marginRight: "3%" }}>{this.state.occurrenceData.upvotes - this.state.occurrenceData.downvotes} </Text>
-                <Icon style={{ color: this.state.downvoteColor }} name="ios-arrow-round-down" />
+                <Text style={{ fontWeight: "bold" }}>Description: </Text>
+                <Text>{this.state.occurrenceData.description}</Text>
               </Left>
             </ListItem>
           </List>
+          <Card>
+            <CardItem cardBody>
+              <Image source={{ uri: this.state.occurrenceData.image }} style={{ height: 150, width: null, flex: 1 }} />
+            </CardItem>
+          </Card>
         </Content>
       </Container>
     )
